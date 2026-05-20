@@ -25,7 +25,7 @@ async function generateShortSession(credsPath) {
         const credsData = fs.readFileSync(credsPath, 'utf-8');
         const base64Creds = Buffer.from(credsData).toString('base64');
 
-        const sessionId = `KIRA-MD~`;
+        const sessionId = `SYED-MD~`;
 
         return {
             sessionId: sessionId,
