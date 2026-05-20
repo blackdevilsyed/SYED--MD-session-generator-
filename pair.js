@@ -22,18 +22,11 @@ const router = express.Router();
 /* ===== SHORT SESSION ID GENERATOR WITH BASE64 ENCODING ===== */
 async function generateShortSession(credsPath) {
     try {
-        // Read the actual creds.json file
         const credsData = fs.readFileSync(credsPath, 'utf-8');
-        
-        // Encode the credentials to base64
         const base64Creds = Buffer.from(credsData).toString('base64');
-        
-        // Generate session ID with prefix
-        const y = new Date().getFullYear();
-        const r = Math.random().toString(36).substring(2, 6).toUpperCase();
-        const sessionId = `SYED-MD~`;
-        
-        // Return both session ID and encoded data
+
+        const sessionId = `KIRA-MD~`;
+
         return {
             sessionId: sessionId,
             encodedData: base64Creds
@@ -46,8 +39,8 @@ async function generateShortSession(credsPath) {
 
 /* ===== HELPERS ===== */
 function rm(p) {
-    try { 
-        if (fs.existsSync(p)) fs.rmSync(p, { recursive: true, force: true }); 
+    try {
+        if (fs.existsSync(p)) fs.rmSync(p, { recursive: true, force: true });
     } catch(e) {
         console.log("Cleanup error:", e);
     }
@@ -86,112 +79,75 @@ router.get("/", async (req, res) => {
         sock.ev.on("connection.update", async ({ connection, lastDisconnect }) => {
             if (connection === "open") {
                 try {
-                    // Wait for creds to be saved
                     await delay(3000);
-                    
-                    // Path to creds.json
+
                     const credsPath = join(dir, 'creds.json');
-                    
-                    // Generate short session with encoded data
+
                     const sessionInfo = await generateShortSession(credsPath);
-                    
+
                     if (!sessionInfo) {
                         throw new Error("Failed to generate session");
                     }
 
                     const jid = jidNormalizedUser(num + "@s.whatsapp.net");
 
-                    // 1️⃣ Send the COMPLETE session string (SESSION_ID + base64 data)
                     const completeSession = `${sessionInfo.sessionId}${sessionInfo.encodedData}`;
-                    await sock.sendMessage(jid, { 
-                        text: `${completeSession}` 
+
+                    await sock.sendMessage(jid, {
+                        text: `${completeSession}`
                     });
 
-                    // 2️⃣ Wait 2 seconds
                     await delay(2000);
 
-                  // 3️⃣ Send bot info (ALIVE STYLE: Fake vCard + Image + Caption)
-
-// ---- Fake vCard (quoted, upar show hoga) ----
-const fakeVCardQuoted = {
-  key: {
-    fromMe: false,
-    participant: "0@s.whatsapp.net",
-    remoteJid: "status@broadcast"
-  },
-  message: {
-    contactMessage: {
-      displayName: "© SYED-MD",
-      vcard: `BEGIN:VCARD
-VERSION:3.0
-FN:© SYED-MD
-ORG:SYED ABDUL WAHAB BUKHARI MD Official;
-TEL;type=CELL;type=VOICE;waid=13135550002:+13135550002
-END:VCARD`
-    }
-  }
-};
-
-// ---- Caption (alive.js style bot details) ----
-const caption = `
-╭━〔 *WAHAB-xᴍᴅ* 〕━··๏
+                    const caption = `
+╭━〔 *SYED-MD* 〕━··๏
 ┃★╭──────────────
-┃★│ 👑 Owner : *SYED ABDUL WAHAB BUKHARI MD Official*
+┃★│ 👑 Owner : *SYED*
 ┃★│ 🤖 Baileys : *Multi Device*
 ┃★│ 💻 Type : *NodeJs*
-┃★│ 🚀 Platform : *Render*
+┃★│ 🚀 Platform : *Railway*
 ┃★│ ⚙️ Mode : *Public*
 ┃★│ 🔣 Prefix : *[ . ]*
 ┃★│ 🏷️ Version : *8.0.0*
 ┃★╰──────────────
 ╰━━━━━━━━━━━━━━┈⊷`;
 
-// ---- Send IMAGE + caption, quoted with fake vCard ----
-await sock.sendMessage(
-  jid,
-  {
-    image: { url: "https://files.catbox.moe" },
-    caption,
-    contextInfo: {
-      mentionedJid: [jid],
-      forwardingScore: 999,
-      isForwarded: true,
-      forwardedNewsletterMessageInfo: {
-        newsletterJid: "120363426863283917@newsletter",
-        newsletterName: "❀༒★[𓆩〬𝐒ꭚ𝛆̽ᖙ  𝐀͢Ᏸᖙʊ͛ɭ  ᭙𝛂͢ⴙ͜͡𝛂֟፝͜Ᏸ  Ᏸʊ͛ᥣꝛͱ꧊𝛂͢ɼ̚ī᭄֟፝ᯓ-ᴍᴅ]★༒❀",
-        serverMessageId: 143
-      }
-    }
-  },
-  { quoted: fakeVCardQuoted }
-);
-                    // 4️⃣ Cleanup
+                    await sock.sendMessage(
+                        jid,
+                        {
+                            text: caption
+                        }
+                    );
+
                     await delay(2000);
                     rm(dir);
-                    
-                    // Exit gracefully
+
                     setTimeout(() => {
                         process.exit(0);
                     }, 1000);
-                    
+
                 } catch (err) {
                     console.error("❌ Error in pairing process:", err);
                     rm(dir);
-                    
-                    // Try to send error to user
+
                     try {
                         const jid = jidNormalizedUser(num + "@s.whatsapp.net");
-                        await sock.sendMessage(jid, { 
-                            text: "❌ Error generating session. Please try again." 
+
+                        await sock.sendMessage(jid, {
+                            text: `❌ REAL ERROR:\n${err.message}`
                         });
-                    } catch(e) {}
-                    
+
+                    } catch(e) {
+                        console.log(e)
+                    }
+
                     process.exit(1);
                 }
             }
 
             if (connection === "close") {
                 const c = lastDisconnect?.error?.output?.statusCode;
+
                 if (c !== 401) {
                     setTimeout(() => start(), 2000);
                 }
@@ -200,24 +156,30 @@ await sock.sendMessage(
 
         if (!sock.authState.creds.registered) {
             await delay(3000);
+
             try {
                 let code = await sock.requestPairingCode(num);
+
                 code = code?.match(/.{1,4}/g)?.join("-") || code;
+
                 if (!res.headersSent) {
-                    res.send({ 
-                        success: true, 
+                    res.send({
+                        success: true,
                         code: code,
-                        message: "Scan QR code or use pairing code to connect" 
+                        message: "Scan QR code or use pairing code to connect"
                     });
                 }
+
             } catch(err) {
                 console.error("Pairing error:", err);
+
                 if (!res.headersSent) {
-                    res.status(503).send({ 
-                        code: "PAIR_FAIL", 
-                        error: err.message 
+                    res.status(503).send({
+                        code: "PAIR_FAIL",
+                        error: err.message
                     });
                 }
+
                 rm(dir);
                 process.exit(1);
             }
@@ -227,10 +189,7 @@ await sock.sendMessage(
     start();
 });
 
-/* ===== SAFETY ===== */
 process.on("uncaughtException", (err) => {
-    const e = String(err);
-    if (e.includes("conflict") || e.includes("not-authorized") || e.includes("Timed Out")) return;
     console.error("Crash:", err);
 });
 
@@ -239,5 +198,3 @@ process.on("unhandledRejection", (err) => {
 });
 
 export default router;
-
-//coded by SYED ABDUL WAHAB BUKHARI MD Official 🇵🇰 
